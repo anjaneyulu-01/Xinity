@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Smooth scroll & scrollbar ───────────────────────────────────────── */
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-sky-50 dark:bg-gray-950 text-slate-900 dark:text-white font-sans transition-colors duration-300;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar         { width: 5px; }
+  ::-webkit-scrollbar-track   { @apply bg-sky-100 dark:bg-gray-900; }
+  ::-webkit-scrollbar-thumb   { @apply bg-brand-500 rounded-full; }
+
+  ::selection { @apply bg-brand-400/30 text-brand-700 dark:text-brand-200; }
+}
+
+/* ─── Utility layers ───────────────────────────────────────────────────── */
+@layer utilities {
+
+  /* Glitch animation */
+  .glitch { position: relative; }
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .glitch::before {
+    color: #0ff;
+    animation: glitch-a 0.45s steps(2) infinite;
+    clip-path: polygon(0 0,100% 0,100% 40%,0 40%);
+    transform: translate(-3px,0);
+  }
+  .glitch::after {
+    color: #f0f;
+    animation: glitch-b 0.45s steps(2) infinite;
+    clip-path: polygon(0 60%,100% 60%,100% 100%,0 100%);
+    transform: translate(3px,0);
+  }
+  @keyframes glitch-a {
+    0%,100% { transform: translate(-3px,0) skewX(0deg); }
+    33%      { transform: translate(3px,0)  skewX(-2deg); }
+    66%      { transform: translate(-1px,0) skewX(1deg); }
+  }
+  @keyframes glitch-b {
+    0%,100% { transform: translate(3px,0)  skewX(0deg); }
+    33%      { transform: translate(-3px,0) skewX(2deg); }
+    66%      { transform: translate(1px,0)  skewX(-1deg); }
+  }
+
+  /* Neon border */
+  .neon-border {
+    box-shadow: 0 0 8px theme('colors.brand.400'), 0 0 20px theme('colors.brand.400/40');
+  }
+
+  /* Shimmer button gradient */
+  .btn-shimmer {
+    background: linear-gradient(90deg,
+      theme('colors.brand.500') 0%,
+      theme('colors.brand.300') 50%,
+      theme('colors.brand.500') 100%);
+    background-size: 200% auto;
+    animation: shimmer 2.5s linear infinite;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent;
+  }
+  .dark .gradient-text {
+    @apply from-brand-300 via-cyan-200 to-blue-300;
+  }
+
+  /* Section alternating bg */
+  .section-a { @apply bg-white dark:bg-gray-950; }
+  .section-b { @apply bg-sky-50/80 dark:bg-gray-900; }
+
+  /* Card */
+  .card {
+    @apply bg-white dark:bg-gray-900
+           border border-slate-200 dark:border-gray-800
+           rounded-2xl shadow-sm
+           hover:border-brand-400 dark:hover:border-brand-500
+           hover:shadow-[0_4px_24px_theme('colors.brand.400/20')]
+           dark:hover:shadow-[0_0_24px_theme('colors.brand.400/15')]
+           transition-all duration-300;
+  }
+
+  /* Typewriter cursor */
+  .typewriter::after {
+    content: '|';
+    animation: blink 1s step-start infinite;
+    @apply text-brand-500 dark:text-brand-400;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Moving gradient background for hero */
+  .hero-gradient {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, #0891b215, transparent),
+                radial-gradient(ellipse 60% 40% at 80% 80%, #7c3aed10, transparent);
+  }
+  .dark .hero-gradient {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, #0891b230, transparent),
+                radial-gradient(ellipse 60% 40% at 80% 80%, #7c3aed20, transparent);
+  }
+
+  /* Perspective for flip cards */
+  .perspective { perspective: 1200px; }
+}
