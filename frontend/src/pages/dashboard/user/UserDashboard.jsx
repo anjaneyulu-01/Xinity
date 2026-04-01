@@ -7,6 +7,8 @@ import MyTeam from './MyTeam'
 import Submissions from './Submissions'
 import Progress from './Progress'
 import Certificates from './Certificates'
+import Profile from './Profile'
+import UserSettings from './Settings'
 
 const SIDEBAR = [
   { icon: Home,     label: 'Overview',      to: '/dashboard/user' },
@@ -29,6 +31,8 @@ export default function UserDashboard() {
         <Route path="submissions" element={<Submissions />} />
         <Route path="progress" element={<Progress />} />
         <Route path="certificates" element={<Certificates />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="settings" element={<UserSettings />} />
         <Route path="*" element={<Navigate to="/dashboard/user" replace />} />
       </Routes>
     </DashboardLayout>

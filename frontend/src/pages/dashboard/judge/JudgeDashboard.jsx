@@ -3,6 +3,10 @@ import { ClipboardList, CheckSquare, BarChart2, Users, FileText, Settings } from
 import DashboardLayout from '../../../components/layout/DashboardLayout'
 import ReviewQueue from './ReviewQueue'
 import JudgeAnalytics from './JudgeAnalytics'
+import CompletedReviews from './CompletedReviews'
+import AllParticipants from './AllParticipants'
+import MyCriteria from './MyCriteria'
+import JudgeSettings from './JudgeSettings'
 
 const SIDEBAR = [
   { icon: ClipboardList, label: 'Review Queue',      to: '/dashboard/judge' },
@@ -18,7 +22,11 @@ export default function JudgeDashboard() {
     <DashboardLayout sidebar={SIDEBAR}>
       <Routes>
         <Route index element={<ReviewQueue />} />
+        <Route path="completed" element={<CompletedReviews />} />
         <Route path="analytics" element={<JudgeAnalytics />} />
+        <Route path="participants" element={<AllParticipants />} />
+        <Route path="criteria" element={<MyCriteria />} />
+        <Route path="settings" element={<JudgeSettings />} />
         <Route path="*" element={<Navigate to="/dashboard/judge" replace />} />
       </Routes>
     </DashboardLayout>

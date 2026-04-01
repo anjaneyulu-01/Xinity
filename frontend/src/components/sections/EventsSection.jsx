@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, MapPin, Users, Flame, ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Calendar, MapPin, Users, Flame, ArrowRight, CheckCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import CountdownTimer from '../ui/CountdownTimer'
-import { MOCK_EVENTS } from '../../store/eventStore'
+import { useEventStore, MOCK_EVENTS } from '../../store/eventStore'
+import { useAuthStore } from '../../store/authStore'
 import { useTheme } from '../../context/ThemeContext'
+import EventRegistrationModal from '../EventRegistrationModal'
+import toast from 'react-hot-toast'
 
 const TYPE_COLOR = {
   Hackathon: 'text-[#00e5ff] border-[#00e5ff]/30 bg-[#00e5ff]/10',
@@ -11,7 +15,7 @@ const TYPE_COLOR = {
   Talk:      'text-[#00e676] border-[#00e676]/30 bg-[#00e676]/10',
 }
 
-function EventCard({ event, large, dark }) {
+function EventCard({ event, large, dark, onRegister, isRegistered }) {
   const pct = event.maxTeams ? Math.round((event.registered / event.maxTeams) * 100) : null
 
   return (
@@ -73,52 +77,103 @@ function EventCard({ event, large, dark }) {
       )}
 
       {/* CTA */}
-      <Link to="/register" className="btn-primary text-sm py-2.5 mt-auto self-start">
-        Register Now <ArrowRight size={14} />
-      </Link>
+      {isRegistered ? (
+        <button
+          disabled
+          className={`text-sm py-2.5 mt-auto self-start px-5 rounded-xl font-medium flex items-center gap-2 ${
+            dark 
+              ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/30' 
+              : 'bg-green-100 text-green-700 border border-green-300'
+          }`}
+        >
+          <CheckCircle size={14} /> Registered
+        </button>
+      ) : (
+        <button 
+          onClick={() => onRegister(event)}
+          className="btn-primary text-sm py-2.5 mt-auto self-start"
+        >
+          Register Now <ArrowRight size={14} />
+        </button>
+      )}
     </motion.div>
   )
 }
 
 export default function EventsSection() {
   const { dark } = useTheme()
+  const navigate = useNavigate()
+  const user = useAuthStore(s => s.user)
+  const { isRegistered } = useEventStore()
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  
+  const handleRegister = (event) => {
+    if (!user) {
+      toast('Please login to register for events', { icon: '🔐' })
+      navigate('/login', { state: { returnTo: '/', eventId: event.id } })
+      return
+    }
+    setSelectedEvent(event)
+    setModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setModalOpen(false)
+    setSelectedEvent(null)
+  }
   
   return (
-    <section id="events" className={`section-pad transition-colors duration-300 ${dark ? 'bg-[#080818]' : 'bg-gray-50'}`}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <p className={`font-code text-sm tracking-widest uppercase mb-3 ${dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}`}>Schedule</p>
-          <h2 className={`font-heading font-bold text-4xl sm:text-5xl mb-4 ${dark ? 'text-white' : 'text-gray-900'}`}>
-            Upcoming <span className="gradient-cyan">Challenges</span>
-          </h2>
-          <div className="w-20 h-1 bg-gradient-to-r from-[#00e5ff] to-[#0066ff] mx-auto rounded-full" />
-        </motion.div>
+    <>
+      <section id="events" className={`section-pad transition-colors duration-300 ${dark ? 'bg-[#080818]' : 'bg-gray-50'}`}>
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-14"
+          >
+            <p className={`font-code text-sm tracking-widest uppercase mb-3 ${dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}`}>Schedule</p>
+            <h2 className={`font-heading font-bold text-4xl sm:text-5xl mb-4 ${dark ? 'text-white' : 'text-gray-900'}`}>
+              Upcoming <span className="gradient-cyan">Challenges</span>
+            </h2>
+            <div className="w-20 h-1 bg-gradient-to-r from-[#00e5ff] to-[#0066ff] mx-auto rounded-full" />
+          </motion.div>
 
-        {/* Event grid */}
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-5"
-        >
-          {MOCK_EVENTS.map((event, i) => (
-            <motion.div
-              key={event.id}
-              variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
-            >
-              <EventCard event={event} large={event.featured} dark={dark} />
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </section>
+          {/* Event grid */}
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-5"
+          >
+            {MOCK_EVENTS.map((event, i) => (
+              <motion.div
+                key={event.id}
+                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.5 } } }}
+              >
+                <EventCard 
+                  event={event} 
+                  large={event.featured} 
+                  dark={dark} 
+                  onRegister={handleRegister}
+                  isRegistered={user ? isRegistered(event.id, user.uid) : false}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Registration Modal */}
+      <EventRegistrationModal 
+        event={selectedEvent} 
+        isOpen={modalOpen} 
+        onClose={closeModal}
+      />
+    </>
   )
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export const MOCK_EVENTS = [
   {
@@ -98,16 +99,54 @@ export const MOCK_REVIEW_QUEUE = [
   },
 ]
 
-export const useEventStore = create((set, get) => ({
-  events: MOCK_EVENTS,
-  submissions: MOCK_SUBMISSIONS,
-  teams: MOCK_TEAMS,
-  leaderboard: MOCK_LEADERBOARD,
-  reviewQueue: MOCK_REVIEW_QUEUE,
+export const useEventStore = create(
+  persist(
+    (set, get) => ({
+      events: MOCK_EVENTS,
+      submissions: MOCK_SUBMISSIONS,
+      teams: MOCK_TEAMS,
+      leaderboard: MOCK_LEADERBOARD,
+      reviewQueue: MOCK_REVIEW_QUEUE,
+      registrations: [], // User's event registrations
 
-  getEvent: (id) => get().events.find(e => e.id === id),
-  updateSubmissionStatus: (id, status) =>
-    set(s => ({
-      reviewQueue: s.reviewQueue.map(r => r.id === id ? { ...r, status } : r)
-    })),
-}))
+      getEvent: (id) => get().events.find(e => e.id === id),
+      
+      isRegistered: (eventId, userId) => 
+        get().registrations.some(r => r.eventId === eventId && r.userId === userId),
+      
+      getUserRegistrations: (userId) => 
+        get().registrations.filter(r => r.userId === userId),
+      
+      registerForEvent: (eventId, registrationData) => {
+        set(s => ({
+          registrations: [...s.registrations, registrationData],
+          events: s.events.map(e => 
+            e.id === eventId 
+              ? { ...e, registered: (e.registered || 0) + 1 }
+              : e
+          )
+        }))
+      },
+      
+      cancelRegistration: (eventId, userId) => {
+        set(s => ({
+          registrations: s.registrations.filter(r => !(r.eventId === eventId && r.userId === userId)),
+          events: s.events.map(e =>
+            e.id === eventId
+              ? { ...e, registered: Math.max(0, (e.registered || 0) - 1) }
+              : e
+          )
+        }))
+      },
+
+      updateSubmissionStatus: (id, status) =>
+        set(s => ({
+          reviewQueue: s.reviewQueue.map(r => r.id === id ? { ...r, status } : r)
+        })),
+    }),
+    { 
+      name: 'xinity-events',
+      partialize: (s) => ({ registrations: s.registrations })
+    }
+  )
+)

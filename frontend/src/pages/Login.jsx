@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Zap, User, Scale, Shield, Chrome } from 'lucide-react'
+import { Eye, EyeOff, Zap, User, Scale, Shield, Chrome, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
 import toast from 'react-hot-toast'
@@ -125,6 +125,15 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
+          {/* Back to home */}
+          <Link
+            to="/"
+            className={`inline-flex items-center gap-2 mb-6 text-sm font-medium transition-colors ${dark ? 'text-[#94a3b8] hover:text-[#00e5ff]' : 'text-gray-500 hover:text-[#0066ff]'}`}
+          >
+            <ArrowLeft size={16} />
+            Back to Home
+          </Link>
+
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center">

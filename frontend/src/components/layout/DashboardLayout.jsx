@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Search, ChevronDown, LogOut, Zap, Menu, X } from 'lucide-react'
+import { Bell, Search, ChevronDown, LogOut, Zap, Menu, X, Moon, Sun, Command } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useTheme } from '../../context/ThemeContext'
+import { useRealtimeStore } from '../../store/realtimeStore'
+import NotificationCenter from '../ui/NotificationCenter'
 import toast from 'react-hot-toast'
 
 function Avatar({ name, size = 8 }) {
@@ -19,16 +21,37 @@ export default function DashboardLayout({ sidebar, children }) {
   const [expanded, setExpanded] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropOpen, setDropOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const user = useAuthStore(s => s.user)
   const logout = useAuthStore(s => s.logout)
-  const { dark } = useTheme()
+  const { dark, toggle: toggleTheme } = useTheme()
+  const { connected, startUpdates, stopUpdates } = useRealtimeStore()
   const navigate = useNavigate()
+
+  // Start real-time updates on mount
+  useEffect(() => {
+    startUpdates()
+    return () => stopUpdates()
+  }, [])
 
   const handleLogout = () => {
     logout()
     toast.success('Signed out')
     navigate('/login')
   }
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+      if (e.key === 'Escape') setSearchOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <div className={`min-h-screen flex transition-colors duration-300 ${dark ? 'bg-[#04040f]' : 'bg-gray-100'}`}>
@@ -152,17 +175,60 @@ export default function DashboardLayout({ sidebar, children }) {
           <button onClick={() => setMobileOpen(true)} className={`lg:hidden transition-colors ${dark ? 'text-[#94a3b8] hover:text-[#00e5ff]' : 'text-gray-500 hover:text-[#0066ff]'}`}>
             <Menu size={20} />
           </button>
-          {/* Search */}
-          <div className="relative flex-1 max-w-sm hidden sm:block">
+          
+          {/* Search with keyboard shortcut */}
+          <div className="relative flex-1 max-w-md hidden sm:block">
             <Search size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-[#94a3b8]' : 'text-gray-400'}`} />
-            <input placeholder="Search..." className="input-field py-2 pl-9 text-sm" />
+            <input 
+              placeholder="Search..." 
+              className="input-field py-2 pl-9 pr-16 text-sm w-full" 
+              onFocus={() => setSearchOpen(true)}
+            />
+            <div className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+              dark ? 'bg-white/10 text-[#94a3b8]' : 'bg-gray-200 text-gray-500'
+            }`}>
+              <Command size={10} /> K
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            {/* Bell */}
-            <button className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${dark ? 'border-[#1e3a5f] text-[#94a3b8] hover:text-[#00e5ff] hover:border-[#00e5ff]/30' : 'border-gray-200 text-gray-500 hover:text-[#0066ff] hover:border-[#0066ff]/30'}`}>
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff4081]" />
-            </button>
+          
+          <div className="ml-auto flex items-center gap-2">
+            {/* Connection status indicator */}
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs ${
+              connected 
+                ? 'bg-[#00e676]/10 text-[#00e676]' 
+                : 'bg-[#ff4081]/10 text-[#ff4081]'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-[#00e676] animate-pulse' : 'bg-[#ff4081]'}`} />
+              {connected ? 'Live' : 'Offline'}
+            </div>
+            
+            {/* Theme toggle */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTheme}
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
+                dark 
+                  ? 'border-[#1e3a5f] text-[#94a3b8] hover:text-[#ffd600] hover:border-[#ffd600]/30' 
+                  : 'border-gray-200 text-gray-500 hover:text-[#0066ff] hover:border-[#0066ff]/30'
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                {dark ? (
+                  <motion.div key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+                    <Sun size={16} />
+                  </motion.div>
+                ) : (
+                  <motion.div key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+                    <Moon size={16} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+            
+            {/* Notification Center */}
+            <NotificationCenter dark={dark} />
+            
             {/* User dropdown */}
             <div className="relative">
               <button
