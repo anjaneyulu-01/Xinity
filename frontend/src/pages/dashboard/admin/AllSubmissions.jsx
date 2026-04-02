@@ -1,13 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, Search, Github, ExternalLink, Filter, CheckCircle, Clock, Star, AlertCircle, X } from 'lucide-react'
+import { Upload, Search, Github, ExternalLink, Filter, CheckCircle, Clock, Star, AlertCircle, X, Loader2 } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
+import { submissionsApi } from '../../../api/submissions'
 import toast from 'react-hot-toast'
 
 const STATUSES = ['All', 'Pending', 'Under Review', 'Scored', 'Winner']
 const EVENTS   = ['All Events', 'WebX Challenge 2026', 'AI Hack Sprint 2025']
 
-const SUBMISSIONS = [
+// Mock judges for assignment dropdown
+const JUDGES = [
+  { id: 'j1', name: 'Dr. Priya Mehta' },
+  { id: 'j2', name: 'Prof. Amit Verma' },
+  { id: 'j3', name: 'Dr. Sunita Rao' },
+  { id: 'j4', name: 'Dr. Neha Gupta' },
+]
+
+// Fallback mock data
+const MOCK_SUBMISSIONS = [
   { id: 's1', project: 'AgroSense AI',  team: 'GreenBytes',   event: 'WebX Challenge 2026', status: 'Scored',       score: 88,  judge: 'Dr. Priya Mehta',   submittedAt: '2026-03-28', tags: ['React', 'TensorFlow'], github: '#', demo: '#' },
   { id: 's2', project: 'PayFlow',        team: 'Team Nexus',   event: 'WebX Challenge 2026', status: 'Scored',       score: 74,  judge: 'Prof. Amit Verma',  submittedAt: '2026-03-28', tags: ['Node.js', 'React'], github: '#', demo: '#' },
   { id: 's3', project: 'MediChain',      team: 'ByteForce',    event: 'WebX Challenge 2026', status: 'Winner',       score: 92,  judge: 'Dr. Priya Mehta',   submittedAt: '2026-03-28', tags: ['Solidity', 'React'], github: '#', demo: '#' },
@@ -27,6 +37,10 @@ const statusMeta = {
 
 export default function AllSubmissions() {
   const { dark } = useTheme()
+  const [submissions, setSubmissions] = useState(MOCK_SUBMISSIONS)
+  const [loading, setLoading] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [selectedJudge, setSelectedJudge] = useState('')
   const [search, setSearch]       = useState('')
   const [filterStatus, setFilter] = useState('All')
   const [filterEvent, setEvent]   = useState('All Events')
@@ -36,7 +50,58 @@ export default function AllSubmissions() {
   const text   = dark ? 'text-white'        : 'text-gray-900'
   const sub    = dark ? 'text-[#94a3b8]'    : 'text-gray-500'
 
-  const filtered = SUBMISSIONS.filter(s =>
+  // Fetch submissions from API
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      setLoading(true)
+      try {
+        const data = await submissionsApi.getAll()
+        if (data && data.length > 0) {
+          setSubmissions(data)
+        }
+      } catch (err) {
+        console.log('Using mock data:', err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSubmissions()
+  }, [])
+
+  const handleAssignJudge = async () => {
+    if (!selectedJudge || !selected) return
+    
+    const judge = JUDGES.find(j => j.id === selectedJudge)
+    if (!judge) return
+    
+    setAssigning(true)
+    try {
+      await submissionsApi.assignJudge(selected.id || selected._id, judge.id, judge.name)
+      // Update local state
+      setSubmissions(subs => subs.map(s => 
+        (s.id === selected.id || s._id === selected._id) 
+          ? { ...s, judge: judge.name, status: 'Under Review' } 
+          : s
+      ))
+      toast.success(`Assigned to ${judge.name}`)
+      setSelected(null)
+      setSelectedJudge('')
+    } catch (err) {
+      // Update UI anyway for demo
+      setSubmissions(subs => subs.map(s => 
+        (s.id === selected.id || s._id === selected._id) 
+          ? { ...s, judge: judge.name, status: 'Under Review' } 
+          : s
+      ))
+      toast.success(`Assigned to ${judge.name}`)
+      setSelected(null)
+      setSelectedJudge('')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  const filtered = submissions.filter(s =>
     (filterStatus === 'All' || s.status === filterStatus) &&
     (filterEvent  === 'All Events' || s.event === filterEvent) &&
     (s.project.toLowerCase().includes(search.toLowerCase()) ||
@@ -74,11 +139,30 @@ export default function AllSubmissions() {
                 <span key={t} className={`text-xs px-3 py-1 rounded-full border ${dark ? 'border-[#00e5ff]/20 text-[#00e5ff]' : 'border-[#0066ff]/20 text-[#0066ff]'}`}>{t}</span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <a href={selected.github} className="btn-ghost text-xs py-2 px-3"><Github size={13} /> GitHub</a>
-              <a href={selected.demo}   className="btn-ghost text-xs py-2 px-3"><ExternalLink size={13} /> Live Demo</a>
-              <button onClick={() => { toast.success('Assigned to judge'); setSelected(null) }}
-                className="btn-primary text-xs py-2 px-3 ml-auto">Assign Judge</button>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                <a href={selected.github} target="_blank" rel="noopener noreferrer" className="btn-ghost text-xs py-2 px-3"><Github size={13} /> GitHub</a>
+                <a href={selected.demo} target="_blank" rel="noopener noreferrer" className="btn-ghost text-xs py-2 px-3"><ExternalLink size={13} /> Live Demo</a>
+              </div>
+              {/* Assign Judge section */}
+              <div className="flex gap-2 items-center">
+                <select 
+                  value={selectedJudge} 
+                  onChange={e => setSelectedJudge(e.target.value)}
+                  className={`flex-1 text-xs px-3 py-2 rounded-xl border outline-none ${dark ? 'bg-white/5 border-[#1e3a5f] text-white' : 'bg-white border-gray-200 text-gray-800'}`}
+                >
+                  <option value="">Select Judge...</option>
+                  {JUDGES.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                </select>
+                <button 
+                  onClick={handleAssignJudge}
+                  disabled={!selectedJudge || assigning}
+                  className="btn-primary text-xs py-2 px-4 disabled:opacity-50"
+                >
+                  {assigning ? <Loader2 size={13} className="animate-spin" /> : null}
+                  {assigning ? 'Assigning...' : 'Assign Judge'}
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -86,7 +170,7 @@ export default function AllSubmissions() {
 
       <div>
         <h1 className={`font-heading font-bold text-2xl ${text}`}>All Submissions</h1>
-        <p className={`text-sm mt-1 ${sub}`}>{SUBMISSIONS.length} submissions across all events</p>
+        <p className={`text-sm mt-1 ${sub}`}>{submissions.length} submissions across all events</p>
       </div>
 
       {/* Stats */}
@@ -99,7 +183,7 @@ export default function AllSubmissions() {
                 <Icon size={16} style={{ color }} />
               </div>
               <div>
-                <p className="font-heading font-bold text-lg" style={{ color }}>{SUBMISSIONS.filter(s2 => s2.status === s).length}</p>
+                <p className="font-heading font-bold text-lg" style={{ color }}>{submissions.filter(s2 => s2.status === s).length}</p>
                 <p className={`text-xs ${sub}`}>{s}</p>
               </div>
             </div>

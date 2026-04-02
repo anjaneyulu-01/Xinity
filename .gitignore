@@ -9,7 +9,10 @@ out/
 # Environment files
 .env
 .env.*
-.claude
+.env.local
+
+# Claude folder
+.claude/
 
 # OS generated files
 Thumbs.db

@@ -6,11 +6,15 @@ import 'dotenv/config'
 import { connectDB } from './db.js'
 import { seedSubmissions } from './seed.js'
 
-import contactRouter     from './routes/contact.js'
-import registerRouter    from './routes/register.js'
-import submissionsRouter from './routes/submissions.js'
-import reviewsRouter     from './routes/reviews.js'
-import eventsRouter      from './routes/events.js'
+import contactRouter       from './routes/contact.js'
+import registerRouter      from './routes/register.js'
+import submissionsRouter   from './routes/submissions.js'
+import reviewsRouter       from './routes/reviews.js'
+import eventsRouter        from './routes/events.js'
+import usersRouter         from './routes/users.js'
+import teamsRouter         from './routes/teams.js'
+import certificatesRouter  from './routes/certificates.js'
+import announcementsRouter from './routes/announcements.js'
 
 const app  = express()
 const PORT = process.env.PORT || 5001
@@ -83,11 +87,15 @@ export function emitEvent(eventName, data, room = null) {
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/contact',     contactRouter)
-app.use('/api/register',    registerRouter)
-app.use('/api/submissions', submissionsRouter)
-app.use('/api/reviews',     reviewsRouter)
-app.use('/api/events',      eventsRouter)
+app.use('/api/contact',       contactRouter)
+app.use('/api/register',      registerRouter)
+app.use('/api/submissions',   submissionsRouter)
+app.use('/api/reviews',       reviewsRouter)
+app.use('/api/events',        eventsRouter)
+app.use('/api/users',         usersRouter)
+app.use('/api/teams',         teamsRouter)
+app.use('/api/certificates',  certificatesRouter)
+app.use('/api/announcements', announcementsRouter)
 
 // Health check with real-time stats
 app.get('/api/health', (_req, res) => {

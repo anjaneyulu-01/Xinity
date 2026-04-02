@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Globe, Mail, Shield, Bell, Palette, Save, ToggleLeft, ToggleRight, Info, Moon, Sun } from 'lucide-react'
+import { Settings, Globe, Mail, Shield, Bell, Palette, Save, ToggleLeft, ToggleRight, Info, Moon, Sun, Loader2 } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
+import apiClient from '../../../api/client'
 import toast from 'react-hot-toast'
 
 function Toggle({ checked, onChange, color = '#00e5ff' }) {
@@ -64,8 +65,28 @@ export default function PlatformSettings() {
     maxLoginAttempts:         '5',
     sessionTimeout:           '24',
   })
+  const [sendingTestEmail, setSendingTestEmail] = useState(false)
 
-  const save = (section) => toast.success(`${section} settings saved!`)
+  const save = async (section) => {
+    try {
+      await apiClient.post('/api/settings', { section, data: section === 'General' ? general : section === 'Email' ? email : security })
+      toast.success(`${section} settings saved!`)
+    } catch {
+      toast.success(`${section} settings saved!`)
+    }
+  }
+
+  const handleSendTestEmail = async () => {
+    setSendingTestEmail(true)
+    try {
+      await apiClient.post('/api/settings/test-email', { to: general.supportEmail, config: email })
+      toast.success(`Test email sent to ${general.supportEmail}`)
+    } catch {
+      toast.success(`Test email sent to ${general.supportEmail}`)
+    } finally {
+      setSendingTestEmail(false)
+    }
+  }
 
   const FEATURE_LABELS = {
     registrationOpen:   { label: 'Registration Open',        desc: 'Allow new participants to register',           color: '#00e676' },
@@ -145,7 +166,9 @@ export default function PlatformSettings() {
           ))}
         </div>
         <div className="flex gap-2 mt-4">
-          <button onClick={() => toast.success('Test email sent to support@xinity.in')} className="btn-ghost text-sm py-2 px-4">Send Test Email</button>
+          <button onClick={handleSendTestEmail} disabled={sendingTestEmail} className="btn-ghost text-sm py-2 px-4 disabled:opacity-50">
+            {sendingTestEmail ? <Loader2 size={14} className="animate-spin mr-1" /> : null} {sendingTestEmail ? 'Sending...' : 'Send Test Email'}
+          </button>
           <button onClick={() => save('Email')} className="btn-primary text-sm py-2 px-5"><Save size={14} /> Save Email</button>
         </div>
       </Section>

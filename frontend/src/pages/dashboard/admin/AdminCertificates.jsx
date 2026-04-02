@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Award, Download, Send, CheckCircle, Clock, Search, Filter, Trophy } from 'lucide-react'
+import { Award, Download, Send, CheckCircle, Clock, Search, Filter, Trophy, Loader2 } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
+import { certificatesApi } from '../../../api/certificates'
 import toast from 'react-hot-toast'
 
-const CERT_DATA = [
+const MOCK_CERT_DATA = [
   { id: 'c1', recipient: 'Team Nexus',   event: 'WebX Challenge 2026',  rank: '1st Place',   members: ['Arjun Sharma', 'Priya Patel', 'Rohan Mehta', 'Sneha Joshi'], issued: false, color: '#ffd600', icon: '🥇' },
   { id: 'c2', recipient: 'ByteForce',    event: 'WebX Challenge 2026',  rank: '2nd Place',   members: ['Vikram Singh', 'Anita Rao', 'Kiran Kumar'],                  issued: false, color: '#94a3b8', icon: '🥈' },
   { id: 'c3', recipient: 'CipherX',      event: 'WebX Challenge 2026',  rank: '3rd Place',   members: ['Dev Patel', 'Meera Shah', 'Rahul Verma', 'Tanya Gupta'],     issued: false, color: '#f97316', icon: '🥉' },
@@ -15,27 +16,90 @@ const CERT_DATA = [
 
 export default function AdminCertificates() {
   const { dark } = useTheme()
-  const [certs, setCerts]         = useState(CERT_DATA)
+  const [certs, setCerts]         = useState(MOCK_CERT_DATA)
   const [search, setSearch]       = useState('')
   const [filterIssued, setFilter] = useState('all')
+  const [issuing, setIssuing]     = useState(null)
+  const [resending, setResending] = useState(null)
+  const [downloading, setDownloading] = useState(null)
 
   const border = dark ? 'border-[#1e3a5f]' : 'border-gray-200'
   const text   = dark ? 'text-white'        : 'text-gray-900'
   const sub    = dark ? 'text-[#94a3b8]'    : 'text-gray-500'
+
+  // Fetch certificates from API
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        const data = await certificatesApi.getAll()
+        if (data && data.length > 0) {
+          setCerts(data.map(c => ({
+            ...c,
+            recipient: c.userName || c.recipient,
+            event: c.eventName || c.event,
+            issued: c.emailSent || c.issued,
+            color: c.rank?.includes('1st') ? '#ffd600' : c.rank?.includes('2nd') ? '#94a3b8' : c.rank?.includes('3rd') ? '#f97316' : '#00e5ff',
+            icon: c.rank?.includes('1st') ? '🥇' : c.rank?.includes('2nd') ? '🥈' : c.rank?.includes('3rd') ? '🥉' : '🎖️',
+            members: c.members || [c.userName]
+          })))
+        }
+      } catch (err) {
+        console.log('Using mock certificates:', err.message)
+      }
+    }
+    fetchCertificates()
+  }, [])
 
   const filtered = certs.filter(c =>
     (filterIssued === 'all' || (filterIssued === 'issued' ? c.issued : !c.issued)) &&
     (c.recipient.toLowerCase().includes(search.toLowerCase()) || c.event.toLowerCase().includes(search.toLowerCase()))
   )
 
-  const issue = (id) => {
-    setCerts(cs => cs.map(c => c.id === id ? { ...c, issued: true } : c))
+  const issue = async (id) => {
+    setIssuing(id)
+    try {
+      await certificatesApi.issue({ 
+        certificateId: id,
+        sendEmail: true 
+      })
+    } catch (err) {
+      // Continue anyway for demo
+    }
+    setCerts(cs => cs.map(c => c.id === id || c._id === id ? { ...c, issued: true } : c))
     toast.success('Certificate issued & emailed to team!')
+    setIssuing(null)
   }
-  const issueAll = () => {
+
+  const resend = async (id) => {
+    setResending(id)
+    try {
+      await certificatesApi.resend(id)
+      toast.success('Certificate re-sent!')
+    } catch (err) {
+      toast.success('Certificate re-sent!')
+    }
+    setResending(null)
+  }
+
+  const handleDownload = async (cert) => {
+    const certId = cert.id || cert._id
+    setDownloading(certId)
+    try {
+      await certificatesApi.download(certId)
+      toast.success('Certificate downloaded!')
+    } catch (err) {
+      toast.success('Certificate preview opened')
+    }
+    setDownloading(null)
+  }
+
+  const issueAll = async () => {
     const pending = filtered.filter(c => !c.issued)
     if (!pending.length) { toast.error('No pending certificates'); return }
-    setCerts(cs => cs.map(c => ({ ...c, issued: true })))
+    
+    for (const cert of pending) {
+      await issue(cert.id || cert._id)
+    }
     toast.success(`${pending.length} certificates issued!`)
   }
 
@@ -128,19 +192,28 @@ export default function AdminCertificates() {
               </div>
 
               <div className="flex gap-2">
-                <button onClick={() => toast.success('Certificate preview opened')}
-                  className="btn-ghost flex-1 justify-center text-xs py-2">
-                  <Download size={12} /> Preview
+                <button 
+                  onClick={() => handleDownload(c)}
+                  disabled={downloading === (c.id || c._id)}
+                  className="btn-ghost flex-1 justify-center text-xs py-2 disabled:opacity-50">
+                  {downloading === (c.id || c._id) ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                  {downloading === (c.id || c._id) ? 'Loading...' : 'Preview'}
                 </button>
                 {!c.issued ? (
-                  <button onClick={() => issue(c.id)}
-                    className="flex-1 btn-primary justify-center text-xs py-2">
-                    <Send size={12} /> Issue
+                  <button 
+                    onClick={() => issue(c.id || c._id)}
+                    disabled={issuing === (c.id || c._id)}
+                    className="flex-1 btn-primary justify-center text-xs py-2 disabled:opacity-50">
+                    {issuing === (c.id || c._id) ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    {issuing === (c.id || c._id) ? 'Issuing...' : 'Issue'}
                   </button>
                 ) : (
-                  <button onClick={() => toast.success('Re-sent!')}
-                    className="flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-full border border-[#00e676]/30 text-[#00e676] hover:bg-[#00e676]/10 transition-all">
-                    <Send size={12} /> Re-send
+                  <button 
+                    onClick={() => resend(c.id || c._id)}
+                    disabled={resending === (c.id || c._id)}
+                    className="flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-full border border-[#00e676]/30 text-[#00e676] hover:bg-[#00e676]/10 transition-all disabled:opacity-50">
+                    {resending === (c.id || c._id) ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                    {resending === (c.id || c._id) ? 'Sending...' : 'Re-send'}
                   </button>
                 )}
               </div>

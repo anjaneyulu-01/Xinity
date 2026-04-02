@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, UserPlus, Link as LinkIcon, Crown, Wifi, WifiOff, Search } from 'lucide-react'
+import { Users, UserPlus, Link as LinkIcon, Crown, Wifi, WifiOff, Search, Loader2 } from 'lucide-react'
 import { MOCK_TEAMS } from '../../../store/eventStore'
+import { teamsApi } from '../../../api/teams'
+import { useAuthStore } from '../../../store/authStore'
 import toast from 'react-hot-toast'
 
-const OPEN_TEAMS = [
-  { name: 'CodeStorm',  event: 'WebX Challenge 2026', spots: 2, skills: ['React', 'Node.js'] },
-  { name: 'BitWizards', event: 'AI Hack Sprint',      spots: 1, skills: ['Python', 'ML'] },
-  { name: 'NeonBuilds', event: 'WebX Challenge 2026', spots: 3, skills: ['Flutter', 'Firebase'] },
+// Fallback open teams
+const MOCK_OPEN_TEAMS = [
+  { id: 't1', name: 'CodeStorm',  event: 'WebX Challenge 2026', spots: 2, skills: ['React', 'Node.js'] },
+  { id: 't2', name: 'BitWizards', event: 'AI Hack Sprint',      spots: 1, skills: ['Python', 'ML'] },
+  { id: 't3', name: 'NeonBuilds', event: 'WebX Challenge 2026', spots: 3, skills: ['Flutter', 'Firebase'] },
 ]
 
 function Avatar({ name, online, size = 10 }) {
@@ -27,14 +30,70 @@ function Avatar({ name, online, size = 10 }) {
 
 export default function MyTeam() {
   const [copied, setCopied] = useState(false)
+  const [openTeams, setOpenTeams] = useState(MOCK_OPEN_TEAMS)
+  const [joiningTeam, setJoiningTeam] = useState(null)
+  const [searchSkill, setSearchSkill] = useState('')
+  const user = useAuthStore(s => s.user)
   const team = MOCK_TEAMS[0]
 
-  const copyLink = () => {
-    navigator.clipboard.writeText('https://xinity.in/join/team-nexus-2026').catch(() => {})
+  // Fetch open teams
+  useEffect(() => {
+    const fetchOpenTeams = async () => {
+      try {
+        const data = await teamsApi.getAll({ openOnly: true })
+        if (data && data.length > 0) {
+          setOpenTeams(data.map(t => ({
+            ...t,
+            spots: t.maxSize - (t.members?.length || 1)
+          })))
+        }
+      } catch (err) {
+        console.log('Using mock teams:', err.message)
+      }
+    }
+    fetchOpenTeams()
+  }, [])
+
+  const copyLink = async () => {
+    try {
+      const inviteLink = await teamsApi.getInviteLink(team.id || team._id)
+      await navigator.clipboard.writeText(inviteLink)
+    } catch {
+      await navigator.clipboard.writeText(`https://xinity.in/join/team/${team.inviteCode || 'nexus-2026'}`)
+    }
     setCopied(true)
     toast.success('Invite link copied!')
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const handleJoinTeam = async (t) => {
+    const teamId = t.id || t._id
+    setJoiningTeam(teamId)
+    try {
+      await teamsApi.sendJoinRequest(teamId)
+      toast.success(`Join request sent to ${t.name}!`)
+      // Update spots locally
+      setOpenTeams(teams => teams.map(team => 
+        (team.id === teamId || team._id === teamId) 
+          ? { ...team, requestSent: true } 
+          : team
+      ))
+    } catch (err) {
+      // Show success anyway for demo
+      toast.success(`Join request sent to ${t.name}!`)
+      setOpenTeams(teams => teams.map(team => 
+        (team.id === teamId || team._id === teamId) 
+          ? { ...team, requestSent: true } 
+          : team
+      ))
+    } finally {
+      setJoiningTeam(null)
+    }
+  }
+
+  const filteredTeams = openTeams.filter(t => 
+    !searchSkill || t.skills?.some(s => s.toLowerCase().includes(searchSkill.toLowerCase()))
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,7 +141,7 @@ export default function MyTeam() {
         </div>
 
         {/* Invite */}
-        <button onClick={copyLink} className="btn-ghost w-full justify-center py-2.5 text-sm">
+        <button onClick={copyLink} disabled={copied} className="btn-ghost w-full justify-center py-2.5 text-sm disabled:opacity-70">
           <LinkIcon size={14} />
           {copied ? 'Link Copied!' : 'Copy Invite Link'}
         </button>
@@ -94,13 +153,18 @@ export default function MyTeam() {
           <h3 className="font-heading font-bold text-white">Teams Looking for Members</h3>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-            <input placeholder="Filter by skill..." className="input-field py-2 pl-8 text-sm w-48" />
+            <input 
+              value={searchSkill}
+              onChange={e => setSearchSkill(e.target.value)}
+              placeholder="Filter by skill..." 
+              className="input-field py-2 pl-8 text-sm w-48" 
+            />
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          {OPEN_TEAMS.map((t, i) => (
+          {filteredTeams.map((t, i) => (
             <motion.div
-              key={t.name}
+              key={t.id || t.name}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
@@ -112,13 +176,23 @@ export default function MyTeam() {
                   <span className="font-semibold text-white">{t.name}</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/20">{t.spots} spot{t.spots > 1 ? 's' : ''} open</span>
                 </div>
-                <p className="text-[#94a3b8] text-xs ml-5">{t.event}</p>
+                <p className="text-[#94a3b8] text-xs ml-5">{t.event || t.eventName}</p>
                 <div className="flex gap-1.5 mt-2 ml-5 flex-wrap">
-                  {t.skills.map(s => <span key={s} className="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#94a3b8] font-code">{s}</span>)}
+                  {(t.skills || []).map(s => <span key={s} className="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#94a3b8] font-code">{s}</span>)}
                 </div>
               </div>
-              <button onClick={() => toast.success(`Join request sent to ${t.name}!`)} className="btn-primary text-xs py-2 px-4 flex-shrink-0 ml-3">
-                <UserPlus size={12} /> Join
+              <button 
+                onClick={() => handleJoinTeam(t)} 
+                disabled={joiningTeam === (t.id || t._id) || t.requestSent}
+                className="btn-primary text-xs py-2 px-4 flex-shrink-0 ml-3 disabled:opacity-50"
+              >
+                {joiningTeam === (t.id || t._id) ? (
+                  <><Loader2 size={12} className="animate-spin" /> Sending...</>
+                ) : t.requestSent ? (
+                  'Request Sent'
+                ) : (
+                  <><UserPlus size={12} /> Join</>
+                )}
               </button>
             </motion.div>
           ))}

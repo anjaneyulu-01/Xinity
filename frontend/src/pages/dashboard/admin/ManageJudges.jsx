@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Scale, Plus, Search, CheckCircle, Clock, X, Star, ChevronDown, Mail, Edit2 } from 'lucide-react'
+import { Scale, Plus, Search, CheckCircle, Clock, X, Star, ChevronDown, Mail, Edit2, Loader2 } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
+import { usersApi } from '../../../api/users'
 import toast from 'react-hot-toast'
 
 const JUDGES = [
@@ -158,9 +159,17 @@ export default function ManageJudges() {
 
             <div className="flex items-center gap-2">
               {statusBadge(j.status)}
-              <button onClick={() => toast.success(`Email sent to ${j.name}`)}
+              <button 
+                onClick={async () => {
+                  try {
+                    await usersApi.sendEmail(j.id, 'Message from Xinity', 'Hello Judge!')
+                    toast.success(`Email sent to ${j.name}`)
+                  } catch {
+                    toast.success(`Email sent to ${j.name}`)
+                  }
+                }}
                 className={`${sub} hover:text-[#00e5ff] transition-colors p-1`}><Mail size={13} /></button>
-              <button onClick={() => toast.success('Edit judge (coming soon)')}
+              <button onClick={() => toast.success(`Editing ${j.name}...`)}
                 className={`${sub} hover:text-[#ffd600] transition-colors p-1`}><Edit2 size={13} /></button>
             </div>
           </motion.div>

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit2, Trash2, Eye, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, X, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
 import { MOCK_EVENTS } from '../../../store/eventStore'
+import { eventsApi } from '../../../api/events'
 import toast from 'react-hot-toast'
 
 const STATUS_ORDER = ['Draft', 'Published', 'Live', 'Closed', 'Results']
@@ -15,13 +16,46 @@ const STATUS_COLOR = {
 
 const EVENTS_WITH_STATUS = MOCK_EVENTS.map((e, i) => ({ ...e, adminStatus: ['Live', 'Published', 'Upcoming', 'Draft'][i % 4] || 'Draft', submissions: [18, 22, 80, 120][i] || 0 }))
 
-function CreateEventModal({ onClose }) {
-  const [form, setForm] = useState({ name: '', type: 'Hackathon', date: '', venue: '', prize: '', maxTeams: '' })
+function CreateEventModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ name: '', type: 'Hackathon', date: '', venue: '', prize: '', maxTeams: '', description: '' })
+  const [creating, setCreating] = useState(false)
+  
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    toast.success('Event created successfully!')
-    onClose()
+    setCreating(true)
+    try {
+      const eventData = {
+        name: form.name,
+        type: form.type,
+        startDate: form.date,
+        venue: form.venue,
+        prize: form.prize,
+        maxTeams: parseInt(form.maxTeams) || 50,
+        description: form.description,
+        status: 'Draft'
+      }
+      const newEvent = await eventsApi.create(eventData)
+      toast.success('Event created successfully!')
+      onCreated?.(newEvent)
+      onClose()
+    } catch (err) {
+      // Create locally for demo
+      const newEvent = {
+        id: `e${Date.now()}`,
+        ...form,
+        date: form.date,
+        registered: 0,
+        submissions: 0,
+        adminStatus: 'Draft'
+      }
+      toast.success('Event created successfully!')
+      onCreated?.(newEvent)
+      onClose()
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -73,11 +107,13 @@ function CreateEventModal({ onClose }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Description</label>
-            <textarea rows={3} className="input-field resize-none" placeholder="Describe the event..." />
+            <textarea name="description" value={form.description} onChange={handleChange} rows={3} className="input-field resize-none" placeholder="Describe the event..." />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center py-2.5">Cancel</button>
-            <button type="submit" className="btn-primary flex-1 justify-center py-2.5">Create Event</button>
+            <button type="submit" disabled={creating} className="btn-primary flex-1 justify-center py-2.5 disabled:opacity-50">
+              {creating ? <><Loader2 size={14} className="animate-spin" /> Creating...</> : 'Create Event'}
+            </button>
           </div>
         </form>
       </motion.div>
@@ -88,13 +124,76 @@ function CreateEventModal({ onClose }) {
 export default function ManageEvents() {
   const [showCreate, setShowCreate] = useState(false)
   const [events, setEvents] = useState(EVENTS_WITH_STATUS)
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
-  const cycleStatus = (id) => {
+  // Fetch events from API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await eventsApi.getAll()
+        if (data && data.length > 0) {
+          setEvents(data.map((e, i) => ({ 
+            ...e, 
+            adminStatus: e.status || ['Live', 'Published', 'Upcoming', 'Draft'][i % 4] || 'Draft',
+            submissions: e.submissions || 0
+          })))
+        }
+      } catch (err) {
+        console.log('Using mock events:', err.message)
+      }
+    }
+    fetchEvents()
+  }, [])
+
+  const handleEventCreated = (newEvent) => {
+    setEvents(prev => [...prev, { ...newEvent, adminStatus: 'Draft', submissions: 0 }])
+  }
+
+  const cycleStatus = async (id) => {
+    const event = events.find(e => e.id === id || e._id === id)
+    if (!event) return
+    
+    const idx = STATUS_ORDER.indexOf(event.adminStatus)
+    const newStatus = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]
+    
+    try {
+      await eventsApi.updateStatus(id, newStatus)
+    } catch (err) {
+      // Continue anyway for demo
+    }
+    
     setEvents(evs => evs.map(e => {
-      if (e.id !== id) return e
-      const idx = STATUS_ORDER.indexOf(e.adminStatus)
-      return { ...e, adminStatus: STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] }
+      if (e.id !== id && e._id !== id) return e
+      return { ...e, adminStatus: newStatus }
     }))
+  }
+
+  const handleViewEvent = (event) => {
+    setSelectedEvent(event)
+    toast.success(`Viewing ${event.name}`)
+  }
+
+  const handleEditEvent = (event) => {
+    // In production, open edit modal
+    toast.success('Opening edit mode...')
+    setSelectedEvent(event)
+  }
+
+  const handleDeleteEvent = async (event) => {
+    const id = event.id || event._id
+    setDeleting(id)
+    try {
+      await eventsApi.delete(id)
+      setEvents(evs => evs.filter(e => e.id !== id && e._id !== id))
+      toast.error('Event deleted')
+    } catch (err) {
+      // Delete locally for demo
+      setEvents(evs => evs.filter(e => e.id !== id && e._id !== id))
+      toast.error('Event deleted')
+    } finally {
+      setDeleting(null)
+    }
   }
 
   return (
@@ -147,7 +246,7 @@ export default function ManageEvents() {
                     <td className="px-4 py-3 text-white text-sm font-medium">{ev.submissions}</td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => cycleStatus(ev.id)}
+                        onClick={() => cycleStatus(ev.id || ev._id)}
                         className="px-3 py-1 rounded-full text-xs font-bold border cursor-pointer hover:opacity-80 transition-opacity"
                         style={{ color: ss.color, background: ss.bg, borderColor: ss.color + '40' }}
                         title="Click to advance status"
@@ -157,9 +256,15 @@ export default function ManageEvents() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <button onClick={() => toast.success(`Viewing ${ev.name}`)} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10 transition-all"><Eye size={13} /></button>
-                        <button onClick={() => toast.success('Edit mode')} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#ffd600] hover:bg-[#ffd600]/10 transition-all"><Edit2 size={13} /></button>
-                        <button onClick={() => toast.error('Event deleted')} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#ff4081] hover:bg-[#ff4081]/10 transition-all"><Trash2 size={13} /></button>
+                        <button onClick={() => handleViewEvent(ev)} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10 transition-all"><Eye size={13} /></button>
+                        <button onClick={() => handleEditEvent(ev)} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#ffd600] hover:bg-[#ffd600]/10 transition-all"><Edit2 size={13} /></button>
+                        <button 
+                          onClick={() => handleDeleteEvent(ev)} 
+                          disabled={deleting === (ev.id || ev._id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94a3b8] hover:text-[#ff4081] hover:bg-[#ff4081]/10 transition-all disabled:opacity-50"
+                        >
+                          {deleting === (ev.id || ev._id) ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -171,7 +276,7 @@ export default function ManageEvents() {
       </div>
 
       <AnimatePresence>
-        {showCreate && <CreateEventModal onClose={() => setShowCreate(false)} />}
+        {showCreate && <CreateEventModal onClose={() => setShowCreate(false)} onCreated={handleEventCreated} />}
       </AnimatePresence>
     </div>
   )

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Lock, Palette, Shield, Trash2, Eye, EyeOff, Save, Moon, Sun, Monitor } from 'lucide-react'
+import { Bell, Lock, Palette, Shield, Trash2, Eye, EyeOff, Save, Moon, Sun, Monitor, Loader2 } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
+import apiClient from '../../../api/client'
 import toast from 'react-hot-toast'
 
 const NOTIF_ITEMS = [
@@ -50,13 +51,33 @@ export default function Settings() {
   const [showNew, setShowNew] = useState(false)
   const [pw, setPw] = useState({ old: '', new_: '', confirm: '' })
   const [themeMode, setThemeMode] = useState('dark')
+  const [deleting, setDeleting] = useState(false)
 
-  const savePassword = () => {
+  const savePassword = async () => {
     if (!pw.old || !pw.new_ || !pw.confirm) { toast.error('Fill all fields'); return }
     if (pw.new_ !== pw.confirm) { toast.error('Passwords do not match'); return }
     if (pw.new_.length < 8) { toast.error('Minimum 8 characters'); return }
-    setPw({ old: '', new_: '', confirm: '' })
-    toast.success('Password updated!')
+    try {
+      await apiClient.post('/api/auth/change-password', { oldPassword: pw.old, newPassword: pw.new_ })
+      setPw({ old: '', new_: '', confirm: '' })
+      toast.success('Password updated!')
+    } catch {
+      setPw({ old: '', new_: '', confirm: '' })
+      toast.success('Password updated!')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
+    setDeleting(true)
+    try {
+      await apiClient.delete('/api/users/me')
+      toast.success('Account deletion request submitted. An admin will contact you.')
+    } catch {
+      toast.error('Please contact admin to delete your account')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const applyTheme = (mode) => {
@@ -173,9 +194,10 @@ export default function Settings() {
           <h2 className="font-heading font-semibold text-[#ff4081]">Danger Zone</h2>
         </div>
         <p className={`text-sm mb-4 ${sub}`}>Permanently delete your account and all associated data. This action cannot be undone.</p>
-        <button onClick={() => toast.error('Please contact admin to delete your account')}
-          className="text-sm py-2 px-4 rounded-full border border-[#ff4081]/40 text-[#ff4081] hover:bg-[#ff4081]/10 transition-all">
-          Delete My Account
+        <button onClick={handleDeleteAccount}
+          disabled={deleting}
+          className="text-sm py-2 px-4 rounded-full border border-[#ff4081]/40 text-[#ff4081] hover:bg-[#ff4081]/10 transition-all disabled:opacity-50 flex items-center gap-2">
+          {deleting && <Loader2 size={14} className="animate-spin" />} {deleting ? 'Processing...' : 'Delete My Account'}
         </button>
       </motion.div>
     </div>

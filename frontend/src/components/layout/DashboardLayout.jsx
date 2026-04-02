@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Search, ChevronDown, LogOut, Zap, Menu, X, Moon, Sun, Command } from 'lucide-react'
+import { Bell, Search, ChevronDown, LogOut, Zap, Menu, X, Moon, Sun, Command, Home } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useTheme } from '../../context/ThemeContext'
 import { useRealtimeStore } from '../../store/realtimeStore'
@@ -88,6 +88,27 @@ export default function DashboardLayout({ sidebar, children }) {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-1">
+          {/* Back to Home */}
+          <Link
+            to="/"
+            className={`sidebar-item mb-2 ${dark ? 'text-[#00e5ff] hover:bg-[#00e5ff]/10' : 'text-[#0066ff] hover:bg-[#0066ff]/10'}`}
+            title={!expanded ? 'Back to Home' : undefined}
+          >
+            <Home size={18} className="flex-shrink-0" />
+            <AnimatePresence>
+              {expanded && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="truncate"
+                >
+                  Back to Home
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Link>
+          
           {sidebar.map(({ icon: Icon, label, to }) => (
             <NavLink
               key={to}
@@ -146,6 +167,16 @@ export default function DashboardLayout({ sidebar, children }) {
                 <button onClick={() => setMobileOpen(false)} className={dark ? 'ml-auto text-[#94a3b8]' : 'ml-auto text-gray-500'}><X size={18} /></button>
               </div>
               <nav className="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
+                {/* Back to Home - Mobile */}
+                <Link
+                  to="/"
+                  onClick={() => setMobileOpen(false)}
+                  className={`sidebar-item mb-2 ${dark ? 'text-[#00e5ff] hover:bg-[#00e5ff]/10' : 'text-[#0066ff] hover:bg-[#0066ff]/10'}`}
+                >
+                  <Home size={18} />
+                  <span>Back to Home</span>
+                </Link>
+                
                 {sidebar.map(({ icon: Icon, label, to }) => (
                   <NavLink
                     key={to}

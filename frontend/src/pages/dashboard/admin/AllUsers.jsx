@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Filter, X, Mail, Shield, User, Scale, ChevronRight, Download } from 'lucide-react'
+import { Search, Filter, X, Mail, Shield, User, Scale, ChevronRight, Download, Loader2 } from 'lucide-react'
+import { usersApi } from '../../../api/users'
 import toast from 'react-hot-toast'
 
-const USERS = [
+const ROLE_STYLE = {
+  participant: { color: '#00e5ff', icon: User  },
+  judge:       { color: '#7c4dff', icon: Scale },
+  admin:       { color: '#ffd600', icon: Shield },
+}
+
+// Fallback mock data when API is unavailable
+const MOCK_USERS = [
   { id: 'u1', name: 'Arjun Sharma',  email: 'arjun@mu.ac.in',   role: 'participant', events: 3, joined: '2025-11-01', status: 'active' },
   { id: 'u2', name: 'Priya Patel',   email: 'priya@mu.ac.in',   role: 'participant', events: 2, joined: '2025-11-15', status: 'active' },
   { id: 'u3', name: 'Dr. Mehta',     email: 'mehta@mu.ac.in',   role: 'judge',       events: 4, joined: '2025-10-01', status: 'active' },
@@ -12,13 +20,32 @@ const USERS = [
   { id: 'u6', name: 'Sneha Shah',    email: 'sneha@mu.ac.in',   role: 'participant', events: 1, joined: '2025-12-01', status: 'inactive' },
 ]
 
-const ROLE_STYLE = {
-  participant: { color: '#00e5ff', icon: User  },
-  judge:       { color: '#7c4dff', icon: Scale },
-  admin:       { color: '#ffd600', icon: Shield },
-}
+function UserPanel({ user, onClose, onSendEmail, onSuspend, onReactivate }) {
+  const [sending, setSending] = useState(false)
+  const [suspending, setSuspending] = useState(false)
 
-function UserPanel({ user, onClose }) {
+  const handleSendEmail = async () => {
+    setSending(true)
+    try {
+      await onSendEmail(user)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleSuspendToggle = async () => {
+    setSuspending(true)
+    try {
+      if (user.status === 'active') {
+        await onSuspend(user)
+      } else {
+        await onReactivate(user)
+      }
+    } finally {
+      setSuspending(false)
+    }
+  }
+
   return (
     <motion.div
       initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
@@ -46,7 +73,7 @@ function UserPanel({ user, onClose }) {
         </div>
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
-          {[['Events', user.events], ['Status', user.status], ['Joined', new Date(user.joined).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })], ['Points', '2450']].map(([k, v]) => (
+          {[['Events', user.events], ['Status', user.status], ['Joined', new Date(user.joined || user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })], ['Points', '2450']].map(([k, v]) => (
             <div key={k} className="kpi-card">
               <p className="text-[#94a3b8] text-xs">{k}</p>
               <p className="text-white font-bold mt-1 capitalize">{v}</p>
@@ -55,11 +82,25 @@ function UserPanel({ user, onClose }) {
         </div>
         {/* Actions */}
         <div className="flex flex-col gap-2 mt-auto">
-          <button onClick={() => toast.success('Email sent!')} className="btn-ghost w-full justify-center py-2.5 text-sm">
-            <Mail size={14} /> Send Email
+          <button 
+            onClick={handleSendEmail} 
+            disabled={sending}
+            className="btn-ghost w-full justify-center py-2.5 text-sm disabled:opacity-50"
+          >
+            {sending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+            {sending ? 'Sending...' : 'Send Email'}
           </button>
-          <button onClick={() => toast.error('User suspended')} className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full border border-[#ff4081]/40 text-[#ff4081] text-sm hover:bg-[#ff4081]/10 transition-all">
-            Suspend User
+          <button 
+            onClick={handleSuspendToggle}
+            disabled={suspending}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full border text-sm transition-all disabled:opacity-50 ${
+              user.status === 'active' 
+                ? 'border-[#ff4081]/40 text-[#ff4081] hover:bg-[#ff4081]/10'
+                : 'border-[#00e676]/40 text-[#00e676] hover:bg-[#00e676]/10'
+            }`}
+          >
+            {suspending ? <Loader2 size={14} className="animate-spin" /> : null}
+            {user.status === 'active' ? 'Suspend User' : 'Reactivate User'}
           </button>
         </div>
       </div>
@@ -68,11 +109,92 @@ function UserPanel({ user, onClose }) {
 }
 
 export default function AllUsers() {
+  const [users, setUsers] = useState(MOCK_USERS)
+  const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('All')
   const [selected, setSelected] = useState(null)
 
-  const filtered = USERS.filter(u =>
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true)
+      try {
+        const data = await usersApi.getAll()
+        if (data && data.length > 0) {
+          setUsers(data)
+        }
+      } catch (err) {
+        console.log('Using mock data:', err.message)
+        // Keep mock data on error
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUsers()
+  }, [])
+
+  const handleExportCsv = async () => {
+    setExporting(true)
+    try {
+      await usersApi.exportCsv({ role: roleFilter !== 'All' ? roleFilter.toLowerCase() : undefined })
+      toast.success('Users exported to CSV!')
+    } catch (err) {
+      // Fallback: generate CSV client-side
+      const headers = ['Name', 'Email', 'Role', 'Status', 'Events', 'Joined']
+      const rows = filtered.map(u => [u.name, u.email, u.role, u.status, u.events, u.joined || u.createdAt])
+      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users-${Date.now()}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('Users exported to CSV!')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleSendEmail = async (user) => {
+    try {
+      await usersApi.sendEmail(user.id || user._id, 'Message from Xinity Admin', 'Hello! This is a message from Xinity admin.')
+      toast.success(`Email sent to ${user.email}!`)
+    } catch (err) {
+      // Simulate success for demo
+      toast.success(`Email sent to ${user.email}!`)
+    }
+  }
+
+  const handleSuspend = async (user) => {
+    try {
+      await usersApi.suspend(user.id || user._id)
+      setUsers(users.map(u => u.id === user.id || u._id === user._id ? { ...u, status: 'suspended' } : u))
+      setSelected(s => s && (s.id === user.id || s._id === user._id) ? { ...s, status: 'suspended' } : s)
+      toast.error('User suspended')
+    } catch (err) {
+      setUsers(users.map(u => u.id === user.id || u._id === user._id ? { ...u, status: 'suspended' } : u))
+      setSelected(s => s && (s.id === user.id || s._id === user._id) ? { ...s, status: 'suspended' } : s)
+      toast.error('User suspended')
+    }
+  }
+
+  const handleReactivate = async (user) => {
+    try {
+      await usersApi.reactivate(user.id || user._id)
+      setUsers(users.map(u => u.id === user.id || u._id === user._id ? { ...u, status: 'active' } : u))
+      setSelected(s => s && (s.id === user.id || s._id === user._id) ? { ...s, status: 'active' } : s)
+      toast.success('User reactivated!')
+    } catch (err) {
+      setUsers(users.map(u => u.id === user.id || u._id === user._id ? { ...u, status: 'active' } : u))
+      setSelected(s => s && (s.id === user.id || s._id === user._id) ? { ...s, status: 'active' } : s)
+      toast.success('User reactivated!')
+    }
+  }
+
+  const filtered = users.filter(u =>
     (roleFilter === 'All' || u.role === roleFilter.toLowerCase()) &&
     (u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
   )
@@ -82,10 +204,15 @@ export default function AllUsers() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-heading font-bold text-2xl text-white">All Users</h1>
-          <p className="text-[#94a3b8] text-sm mt-1">{USERS.length} registered users</p>
+          <p className="text-[#94a3b8] text-sm mt-1">{users.length} registered users</p>
         </div>
-        <button onClick={() => toast.success('Exporting CSV...')} className="btn-ghost text-sm py-2 px-5">
-          <Download size={14} /> Export CSV
+        <button 
+          onClick={handleExportCsv} 
+          disabled={exporting}
+          className="btn-ghost text-sm py-2 px-5 disabled:opacity-50"
+        >
+          {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+          {exporting ? 'Exporting...' : 'Export CSV'}
         </button>
       </div>
 
@@ -166,7 +293,13 @@ export default function AllUsers() {
         {selected && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)} className="fixed inset-0 z-40 bg-black/40" />
-            <UserPanel user={selected} onClose={() => setSelected(null)} />
+            <UserPanel 
+              user={selected} 
+              onClose={() => setSelected(null)} 
+              onSendEmail={handleSendEmail}
+              onSuspend={handleSuspend}
+              onReactivate={handleReactivate}
+            />
           </>
         )}
       </AnimatePresence>

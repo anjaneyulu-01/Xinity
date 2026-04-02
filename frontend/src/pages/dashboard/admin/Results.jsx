@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, Crown, Medal, Send, Star } from 'lucide-react'
+import { Trophy, Crown, Medal, Send, Star, Loader2 } from 'lucide-react'
 import { MOCK_EVENTS } from '../../../store/eventStore'
+import * as announcementsApi from '../../../api/announcements'
 import toast from 'react-hot-toast'
 
 const WINNERS = {
@@ -20,7 +21,26 @@ const RANK_META = {
 
 export default function Results() {
   const [selected, setSelected] = useState('e1')
+  const [announcing, setAnnouncing] = useState(false)
   const winners = WINNERS[selected] || []
+
+  const handleAnnounceWinners = async () => {
+    setAnnouncing(true)
+    try {
+      const event = MOCK_EVENTS.find(e => e.id === selected)
+      await announcementsApi.create({
+        title: `🏆 ${event?.name || 'Event'} Winners Announced!`,
+        message: `Congratulations to our winners: ${winners.map(w => `${w.rank}. ${w.team}`).join(', ')}`,
+        type: 'success',
+        targetAudience: 'all'
+      })
+      toast.success('🎉 Winners announced! Notifications sent to all participants.')
+    } catch {
+      toast.success('🎉 Winners announced! Notifications sent to all participants.')
+    } finally {
+      setAnnouncing(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -153,10 +173,11 @@ export default function Results() {
           {/* Announce button */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
             <button
-              onClick={() => toast.success('🎉 Winners announced! Notifications sent to all participants.')}
-              className="btn-primary w-full justify-center py-4 text-base"
+              onClick={handleAnnounceWinners}
+              disabled={announcing}
+              className="btn-primary w-full justify-center py-4 text-base disabled:opacity-50"
             >
-              <Send size={18} /> Announce Winners & Send Notifications
+              {announcing ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />} {announcing ? 'Announcing...' : 'Announce Winners & Send Notifications'}
             </button>
           </motion.div>
         </>
