@@ -1,8 +1,18 @@
 import axios from 'axios'
 
-// Determine API URL - check environment variable or use production URL
-// Since this runs in the browser, we can check the current hostname at runtime
-const API_BASE = import.meta.env.VITE_API_URL || 'https://xinity.onrender.com/api'
+// Determine API URL - ensure it always ends with /api
+const getApiBase = () => {
+  let base = import.meta.env.VITE_API_URL || 'https://xinity.onrender.com/api'
+  
+  // Ensure the URL ends with /api
+  if (!base.endsWith('/api')) {
+    base = base.replace(/\/$/, '') + '/api'
+  }
+  
+  return base
+}
+
+const API_BASE = getApiBase()
 
 console.log('[API Client] Initial API_BASE:', API_BASE)
 
