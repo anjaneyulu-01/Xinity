@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sun, Moon } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useTheme } from '../../context/ThemeContext'
-import logo from '../../assets/logo.jpeg'
+import logo from '../../assets/logo.png'
 
 const NAV_LINKS = [
   { label: 'Home', href: '#hero' },

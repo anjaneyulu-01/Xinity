@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Sun, Moon } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
-import logo from '../assets/logo.jpeg'
+import logo from '../assets/logo.png'
 
 const NAV_LINKS = [
   { label: 'About',       href: '#about' },
