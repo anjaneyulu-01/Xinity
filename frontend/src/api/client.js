@@ -4,6 +4,8 @@ import axios from 'axios'
 // Since this runs in the browser, we can check the current hostname at runtime
 const API_BASE = import.meta.env.VITE_API_URL || 'https://xinity.onrender.com/api'
 
+console.log('[API Client] Initial API_BASE:', API_BASE)
+
 const client = axios.create({
   baseURL: API_BASE,
   timeout: 15000,
@@ -16,6 +18,8 @@ client.interceptors.request.use((config) => {
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     config.baseURL = 'http://localhost:5001/api'
   }
+  
+  console.log('[API Client] Request:', config.method?.toUpperCase(), config.baseURL + config.url)
   
   // Attach user ID to every request if available
   try {
