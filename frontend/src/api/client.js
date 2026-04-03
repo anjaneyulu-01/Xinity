@@ -1,26 +1,8 @@
 import axios from 'axios'
 
-// Auto-detect API URL based on environment
-const getApiUrl = () => {
-  // Check for environment variable first
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL
-  }
-  
-  // Auto-detect production environment
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    // If deployed on Render
-    if (hostname === 'xinity-1.onrender.com') {
-      return 'https://xinity.onrender.com/api'
-    }
-  }
-  
-  // Default to localhost for development
-  return 'http://localhost:5001/api'
-}
-
-const API_BASE = getApiUrl()
+// Determine API URL - check environment variable or use production URL
+// Since this runs in the browser, we can check the current hostname at runtime
+const API_BASE = import.meta.env.VITE_API_URL || 'https://xinity.onrender.com/api'
 
 const client = axios.create({
   baseURL: API_BASE,
@@ -28,8 +10,14 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach judge/user ID to every request if available
+// Override baseURL at runtime based on actual hostname
 client.interceptors.request.use((config) => {
+  // For local development, use localhost
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    config.baseURL = 'http://localhost:5001/api'
+  }
+  
+  // Attach user ID to every request if available
   try {
     const auth = JSON.parse(localStorage.getItem('xinity-auth') || '{}')
     const user = auth?.state?.user
