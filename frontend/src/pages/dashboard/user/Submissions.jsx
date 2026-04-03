@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, GitBranch, ExternalLink, Star, CheckCircle2, Clock, AlertCircle, X, Upload } from 'lucide-react'
+import { Plus, GitBranch, ExternalLink, Star, CheckCircle2, Clock, AlertCircle, X, Upload, FileText, Loader2 } from 'lucide-react'
 import { MOCK_SUBMISSIONS } from '../../../store/eventStore'
+import { uploadsApi } from '../../../api/uploads'
+import { submissionsApi } from '../../../api/submissions'
 import toast from 'react-hot-toast'
 
 const STATUS_STYLE = {
@@ -11,16 +13,99 @@ const STATUS_STYLE = {
   'Winner':        { color: '#00e5ff', bg: '#00e5ff15', icon: Star },
 }
 
-function SubmitModal({ onClose }) {
+function SubmitModal({ onClose, onSuccess }) {
+  const fileInputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [file, setFile] = useState(null)
+  const [fileUrl, setFileUrl] = useState('')
   const [form, setForm] = useState({ project: '', desc: '', github: '', demo: '', tech: '' })
+  
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
-  const handleSubmit = (e) => {
+  const handleFileSelect = async (selectedFile) => {
+    const allowedTypes = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']
+    const allowedExtensions = ['.pdf', '.ppt', '.pptx']
+    const ext = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'))
+    
+    if (!allowedTypes.includes(selectedFile.type) && !allowedExtensions.includes(ext)) {
+      toast.error('Only PDF, PPT, and PPTX files are allowed')
+      return
+    }
+    
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      toast.error('File size must be less than 25MB')
+      return
+    }
+    
+    setFile(selectedFile)
+    setUploading(true)
+    
+    try {
+      const result = await uploadsApi.uploadFile(selectedFile)
+      setFileUrl(result.url)
+      toast.success('File uploaded successfully!')
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload file')
+      setFile(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e) => {
     e.preventDefault()
+    setDragging(false)
+    const droppedFile = e.dataTransfer.files[0]
+    if (droppedFile) handleFileSelect(droppedFile)
+  }
+
+  const handleBrowse = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileInput = (e) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) handleFileSelect(selectedFile)
+  }
+
+  const removeFile = () => {
+    setFile(null)
+    setFileUrl('')
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!form.project || !form.github) {
+      toast.error('Project name and GitHub URL are required')
+      return
+    }
+    
     setSubmitted(true)
-    setTimeout(() => { onClose(); toast.success('Project submitted successfully!') }, 1200)
+    
+    try {
+      await submissionsApi.create({
+        projectName: form.project,
+        description: form.desc,
+        githubUrl: form.github,
+        demoUrl: form.demo,
+        techStack: form.tech.split(',').map(t => t.trim()).filter(Boolean),
+        fileUrl: fileUrl,
+        teamName: 'My Team', // TODO: Get from user context
+        eventName: 'Current Event' // TODO: Get from event context
+      })
+      
+      setTimeout(() => {
+        onClose()
+        toast.success('Project submitted successfully!')
+        onSuccess?.()
+      }, 1200)
+    } catch (err) {
+      setSubmitted(false)
+      toast.error(err.message || 'Failed to submit project')
+    }
   }
 
   return (
@@ -50,16 +135,16 @@ function SubmitModal({ onClose }) {
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Project Name</label>
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Project Name *</label>
               <input name="project" value={form.project} onChange={handleChange} required placeholder="My Awesome Project" className="input-field" />
             </div>
             <div>
               <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Description</label>
-              <textarea name="desc" value={form.desc} onChange={handleChange} required placeholder="What does your project do?" rows={3} className="input-field resize-none" />
+              <textarea name="desc" value={form.desc} onChange={handleChange} placeholder="What does your project do?" rows={3} className="input-field resize-none" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">GitHub URL</label>
+                <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">GitHub URL *</label>
                 <input name="github" value={form.github} onChange={handleChange} required placeholder="github.com/..." className="input-field" />
               </div>
               <div>
@@ -71,17 +156,67 @@ function SubmitModal({ onClose }) {
               <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Tech Stack (comma-separated)</label>
               <input name="tech" value={form.tech} onChange={handleChange} placeholder="React, Node.js, MongoDB" className="input-field" />
             </div>
-            {/* Drag drop zone */}
-            <div
-              onDragOver={e => { e.preventDefault(); setDragging(true) }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={e => { e.preventDefault(); setDragging(false); toast.success('File attached!') }}
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${dragging ? 'border-[#00e5ff] bg-[#00e5ff]/5' : 'border-[#1e3a5f] hover:border-[#00e5ff]/40'}`}
-            >
-              <Upload size={24} className="text-[#94a3b8] mx-auto mb-2" />
-              <p className="text-[#94a3b8] text-sm">Drop PPT/PDF here or <span className="text-[#00e5ff]">browse</span></p>
+            
+            {/* File upload zone */}
+            <div>
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">PPT/PDF Presentation</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.ppt,.pptx"
+                onChange={handleFileInput}
+                className="hidden"
+              />
+              
+              {file ? (
+                <div className="border border-[#1e3a5f] rounded-xl p-4 bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#00e5ff]/10 flex items-center justify-center">
+                      <FileText size={20} className="text-[#00e5ff]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                      <p className="text-[#94a3b8] text-xs">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {uploading && ' • Uploading...'}
+                        {fileUrl && ' • ✓ Uploaded'}
+                      </p>
+                    </div>
+                    {uploading ? (
+                      <Loader2 size={18} className="text-[#00e5ff] animate-spin" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={removeFile}
+                        className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#94a3b8] hover:text-[#ff4081] hover:bg-[#ff4081]/10"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={handleDrop}
+                  onClick={handleBrowse}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${dragging ? 'border-[#00e5ff] bg-[#00e5ff]/5' : 'border-[#1e3a5f] hover:border-[#00e5ff]/40'}`}
+                >
+                  <Upload size={24} className="text-[#94a3b8] mx-auto mb-2" />
+                  <p className="text-[#94a3b8] text-sm">Drop PPT/PDF here or <span className="text-[#00e5ff]">browse</span></p>
+                  <p className="text-[#94a3b8]/60 text-xs mt-1">Max 25MB • PDF, PPT, PPTX</p>
+                </div>
+              )}
             </div>
-            <button type="submit" className="btn-primary w-full justify-center py-3">Submit Project →</button>
+            
+            <button 
+              type="submit" 
+              disabled={uploading}
+              className="btn-primary w-full justify-center py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploading ? 'Uploading file...' : 'Submit Project →'}
+            </button>
           </form>
         )}
       </motion.div>

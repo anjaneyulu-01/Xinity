@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import http from 'http'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { Server as SocketIOServer } from 'socket.io'
 import 'dotenv/config'
 import { connectDB } from './db.js'
@@ -15,6 +17,10 @@ import usersRouter         from './routes/users.js'
 import teamsRouter         from './routes/teams.js'
 import certificatesRouter  from './routes/certificates.js'
 import announcementsRouter from './routes/announcements.js'
+import uploadsRouter       from './routes/uploads.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app  = express()
 const PORT = process.env.PORT || 5001
@@ -53,6 +59,9 @@ app.set('io', io)
 
 app.use(cors(corsOptions))
 app.use(express.json())
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // ── Socket.io Connection Handling ───────────────────────────────────────────
 io.on('connection', (socket) => {
@@ -116,6 +125,7 @@ app.use('/api/users',         usersRouter)
 app.use('/api/teams',         teamsRouter)
 app.use('/api/certificates',  certificatesRouter)
 app.use('/api/announcements', announcementsRouter)
+app.use('/api/uploads',       uploadsRouter)
 
 // Health check with real-time stats
 app.get('/api/health', (_req, res) => {
