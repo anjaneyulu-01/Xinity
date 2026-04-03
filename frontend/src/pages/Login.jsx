@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, Zap, User, Scale, Shield, Chrome, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff, User, Scale, Shield, Chrome, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
+import logo from '../assets/logo.png'
 import toast from 'react-hot-toast'
 
 const ROLES = [
@@ -74,9 +75,7 @@ export default function Login() {
         </div>
         <div className="relative z-10 max-w-md w-full">
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center animate-glow-pulse">
-              <Zap size={22} className={dark ? 'text-[#04040f]' : 'text-white'} />
-            </div>
+            <img src={logo} alt="Xinity Logo" className="w-12 h-12 object-contain" />
             <span className={`font-heading font-bold text-3xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
           </div>
           <h2 className={`font-heading font-bold text-4xl mb-3 leading-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
@@ -136,9 +135,7 @@ export default function Login() {
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center">
-              <Zap size={14} className={dark ? 'text-[#04040f]' : 'text-white'} />
-            </div>
+            <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-contain" />
             <span className={`font-heading font-bold text-xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
           </div>
 

@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Zap, GitBranch, Linkedin, Instagram, Share2, Mail, ArrowRight } from 'lucide-react'
+import { GitBranch, Linkedin, Instagram, Share2, Mail, ArrowRight } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
+import logo from '../../assets/logo.png'
 
 const LINKS = {
   About:       [['About Xinity','#about'],['Our Mission','#'],['Core Team','#team'],['Contact','#']],
@@ -41,9 +42,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4 w-fit group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center">
-                <Zap size={18} className={dark ? 'text-[#04040f]' : 'text-white'} />
-              </div>
+              <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-contain" />
               <span className={`font-heading font-bold text-2xl transition-colors ${dark ? 'text-white group-hover:text-[#00e5ff]' : 'text-gray-900 group-hover:text-[#0066ff]'}`}>
                 X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span>
               </span>

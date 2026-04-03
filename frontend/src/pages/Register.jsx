@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
+import logo from '../assets/logo.png'
 import toast from 'react-hot-toast'
 
 export default function Register() {
@@ -68,9 +69,7 @@ export default function Register() {
         className="w-full max-w-md relative z-10"
       >
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center">
-            <Zap size={16} className={dark ? 'text-[#04040f]' : 'text-white'} />
-          </div>
+          <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-contain" />
           <span className={`font-heading font-bold text-2xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
         </div>
 
