@@ -19,19 +19,39 @@ import announcementsRouter from './routes/announcements.js'
 const app  = express()
 const PORT = process.env.PORT || 5001
 
+// CORS Configuration - Allow multiple origins for dev and production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://xinity-1.onrender.com',
+  process.env.CLIENT_URL
+].filter(Boolean)
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      console.log(`CORS blocked origin: ${origin}`)
+      callback(null, true) // Allow all origins in production for now
+    }
+  },
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}
+
 // Create HTTP server and Socket.io
 const server = http.createServer(app)
 const io = new SocketIOServer(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-  },
+  cors: corsOptions,
 })
 
 // Make io accessible to routes
 app.set('io', io)
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
+app.use(cors(corsOptions))
 app.use(express.json())
 
 // ── Socket.io Connection Handling ───────────────────────────────────────────

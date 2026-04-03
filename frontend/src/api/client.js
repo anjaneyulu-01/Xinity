@@ -1,10 +1,30 @@
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
+// Auto-detect API URL based on environment
+const getApiUrl = () => {
+  // Check for environment variable first
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  
+  // Auto-detect production environment
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    // If deployed on Render
+    if (hostname === 'xinity-1.onrender.com') {
+      return 'https://xinity.onrender.com/api'
+    }
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:5001/api'
+}
+
+const API_BASE = getApiUrl()
 
 const client = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
 

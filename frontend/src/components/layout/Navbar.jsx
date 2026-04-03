@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Zap, Sun, Moon } from 'lucide-react'
+import { Menu, X, Sun, Moon } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useTheme } from '../../context/ThemeContext'
+import logo from '../../assets/logo.jpeg'
 
 const NAV_LINKS = [
   { label: 'Home', href: '#hero' },
@@ -45,9 +46,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00e5ff] to-[#0066ff] flex items-center justify-center animate-glow-pulse">
-            <Zap size={16} className={dark ? 'text-[#04040f]' : 'text-white'} />
-          </div>
+          <img src={logo} alt="Xinity Logo" className="w-10 h-10 object-contain" />
           <span className={`font-heading font-bold text-xl ${dark ? 'text-white' : 'text-gray-900'} group-hover:text-[#00e5ff] transition-colors`}>
             X<span className="text-[#00e5ff]">inity</span>
           </span>

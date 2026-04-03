@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Zap, Sun, Moon } from 'lucide-react'
+import { Menu, X, Sun, Moon } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
+import logo from '../assets/logo.jpeg'
 
 const NAV_LINKS = [
   { label: 'About',       href: '#about' },
@@ -53,7 +54,7 @@ export default function Navbar() {
         {/* Logo */}
         <a href="#" className="flex items-center gap-2 group shrink-0">
           <motion.div whileHover={{ rotate: 15 }} transition={{ type: 'spring', stiffness: 300 }}>
-            <Zap className="text-brand-500 dark:text-brand-400 w-6 h-6 drop-shadow-[0_0_6px_#06b6d4]" />
+            <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_6px_#06b6d4]" />
           </motion.div>
           <span className="text-xl font-black tracking-widest text-slate-900 dark:text-white">
             X<span className="text-brand-500 dark:text-brand-400">inity</span>
