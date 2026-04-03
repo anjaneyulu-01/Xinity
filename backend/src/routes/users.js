@@ -150,4 +150,79 @@ router.post('/:id/email', async (req, res) => {
   }
 })
 
+// POST /api/users/register - Register new user
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password, university, role } = req.body
+    
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Name, email, and password are required' })
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' })
+    }
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() })
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'Email already registered' })
+    }
+    
+    // Create new user
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password,
+      university: university || '',
+      role: role === 'judge' ? 'judge' : 'participant' // Only allow participant or judge during registration
+    })
+    
+    // Return user without password
+    const userData = user.toObject()
+    delete userData.password
+    
+    res.status(201).json({ success: true, data: userData })
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message })
+  }
+})
+
+// POST /api/users/login - Login user
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body
+    
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' })
+    }
+    
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() })
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid credentials' })
+    }
+    
+    // Check if user is active
+    if (!user.active) {
+      return res.status(401).json({ success: false, error: 'Account is suspended' })
+    }
+    
+    // Verify password
+    const isMatch = await user.comparePassword(password)
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid credentials' })
+    }
+    
+    // Return user without password
+    const userData = user.toObject()
+    delete userData.password
+    
+    res.json({ success: true, data: userData })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
 export default router

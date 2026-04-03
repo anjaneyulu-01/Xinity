@@ -62,5 +62,17 @@ export const usersApi = {
   changeRole: async (id, newRole) => {
     const { data } = await client.patch(`/users/${id}/role`, { role: newRole })
     return data.data
+  },
+
+  // Register new user
+  register: async (userData) => {
+    const { data } = await client.post('/users/register', userData)
+    return data.data
+  },
+
+  // Login user
+  login: async (email, password) => {
+    const { data } = await client.post('/users/login', { email, password })
+    return data.data
   }
 }

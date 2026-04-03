@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, Wifi, WifiOff, RefreshCw, Users, Clock, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useRealtimeStore } from '../../store/realtimeStore'
@@ -24,7 +24,7 @@ const ACTION_COLORS = {
   system: '#94a3b8',
 }
 
-function ActivityItem({ activity, dark }) {
+const ActivityItem = forwardRef(function ActivityItem({ activity, dark }, ref) {
   const color = ACTION_COLORS[activity.type] || '#94a3b8'
   
   const getActionText = () => {
@@ -40,6 +40,7 @@ function ActivityItem({ activity, dark }) {
   
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, x: -20, height: 0 }}
       animate={{ opacity: 1, x: 0, height: 'auto' }}
       exit={{ opacity: 0, x: 20, height: 0 }}
@@ -74,7 +75,7 @@ function ActivityItem({ activity, dark }) {
       </div>
     </motion.div>
   )
-}
+})
 
 export function LiveActivityFeed({ dark = true, limit = 5, showHeader = true }) {
   const { activities, connected, reconnecting, refresh, startUpdates, stopUpdates } = useRealtimeStore()

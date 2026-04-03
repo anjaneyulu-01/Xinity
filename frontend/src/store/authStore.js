@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { usersApi } from '../api/users'
 import { MOCK_USER, MOCK_JUDGE, MOCK_ADMIN } from '../lib/utils'
 
 const DEMO_ACCOUNTS = {
@@ -17,14 +18,35 @@ export const useAuthStore = create(
 
       login: async (email, password) => {
         set({ loading: true, error: null })
-        await new Promise(r => setTimeout(r, 800)) // simulate network
-        const account = DEMO_ACCOUNTS[email.toLowerCase()]
-        if (account && account.password === password) {
-          set({ user: account.data, loading: false })
-          return { success: true, role: account.data.role }
+        
+        // Check demo accounts first
+        const demoAccount = DEMO_ACCOUNTS[email.toLowerCase()]
+        if (demoAccount && demoAccount.password === password) {
+          set({ user: demoAccount.data, loading: false })
+          return { success: true, role: demoAccount.data.role }
         }
-        set({ loading: false, error: 'Invalid credentials' })
-        return { success: false }
+        
+        // Try real API login
+        try {
+          const userData = await usersApi.login(email, password)
+          set({ user: userData, loading: false })
+          return { success: true, role: userData.role }
+        } catch (err) {
+          set({ loading: false, error: err.message || 'Invalid credentials' })
+          return { success: false, error: err.message }
+        }
+      },
+
+      register: async (formData) => {
+        set({ loading: true, error: null })
+        try {
+          const userData = await usersApi.register(formData)
+          set({ user: userData, loading: false })
+          return { success: true, role: userData.role }
+        } catch (err) {
+          set({ loading: false, error: err.message || 'Registration failed' })
+          return { success: false, error: err.message }
+        }
       },
 
       loginDemo: (role) => {

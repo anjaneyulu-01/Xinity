@@ -11,7 +11,7 @@ export default function Register() {
   const [showPw, setShowPw] = useState(false)
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { loginDemo } = useAuthStore()
+  const { register } = useAuthStore()
   const { dark } = useTheme()
   const navigate = useNavigate()
 
@@ -21,13 +21,18 @@ export default function Register() {
     e.preventDefault()
     if (form.password.length < 6) { toast.error('Password too short'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
+    
+    const result = await register(form)
     setLoading(false)
-    setDone(true)
-    setTimeout(() => {
-      loginDemo(form.role)
-      navigate(form.role === 'participant' ? '/dashboard/user' : form.role === 'judge' ? '/dashboard/judge' : '/dashboard/admin')
-    }, 1800)
+    
+    if (result.success) {
+      setDone(true)
+      setTimeout(() => {
+        navigate(result.role === 'participant' ? '/dashboard/user' : result.role === 'judge' ? '/dashboard/judge' : '/dashboard/admin')
+      }, 1800)
+    } else {
+      toast.error(result.error || 'Registration failed')
+    }
   }
 
   if (done) {
