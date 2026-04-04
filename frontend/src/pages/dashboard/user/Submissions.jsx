@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, GitBranch, ExternalLink, Star, CheckCircle2, Clock, AlertCircle, X, Upload, FileText, Loader2 } from 'lucide-react'
-import { MOCK_SUBMISSIONS } from '../../../store/eventStore'
+import { Plus, GitBranch, ExternalLink, Star, CheckCircle2, Clock, AlertCircle, X, Upload, FileText, Loader2, ChevronDown } from 'lucide-react'
+import { MOCK_SUBMISSIONS, MOCK_EVENTS } from '../../../store/eventStore'
 import { uploadsApi } from '../../../api/uploads'
 import { submissionsApi } from '../../../api/submissions'
+import { eventsApi } from '../../../api/events'
 import toast from 'react-hot-toast'
 
 const STATUS_STYLE = {
@@ -20,7 +21,34 @@ function SubmitModal({ onClose, onSuccess }) {
   const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState(null)
   const [fileUrl, setFileUrl] = useState('')
+  const [events, setEvents] = useState([])
+  const [loadingEvents, setLoadingEvents] = useState(true)
+  const [selectedEvent, setSelectedEvent] = useState('')
   const [form, setForm] = useState({ project: '', desc: '', github: '', demo: '', tech: '' })
+  
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await eventsApi.getAll()
+        // Filter to show only upcoming/live events for submission
+        const activeEvents = data.filter(e => e.status === 'upcoming' || e.status === 'live')
+        if (activeEvents.length > 0) {
+          setEvents(activeEvents)
+        } else if (data.length > 0) {
+          setEvents(data)
+        } else {
+          // Fallback to mock events if API returns empty
+          setEvents(MOCK_EVENTS)
+        }
+      } catch (err) {
+        // Fallback to mock events if API fails
+        setEvents(MOCK_EVENTS)
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+    fetchEvents()
+  }, [])
   
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
 
@@ -78,12 +106,19 @@ function SubmitModal({ onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    if (!selectedEvent) {
+      toast.error('Please select a hackathon')
+      return
+    }
+    
     if (!form.project || !form.github) {
       toast.error('Project name and GitHub URL are required')
       return
     }
     
     setSubmitted(true)
+    
+    const selectedEventData = events.find(e => (e._id || e.id) === selectedEvent)
     
     try {
       await submissionsApi.create({
@@ -94,7 +129,8 @@ function SubmitModal({ onClose, onSuccess }) {
         techStack: form.tech.split(',').map(t => t.trim()).filter(Boolean),
         fileUrl: fileUrl,
         teamName: 'My Team', // TODO: Get from user context
-        eventName: 'Current Event' // TODO: Get from event context
+        eventId: selectedEvent,
+        eventName: selectedEventData?.name || selectedEventData?.title || 'Unknown Event'
       })
       
       setTimeout(() => {
@@ -134,6 +170,34 @@ function SubmitModal({ onClose, onSuccess }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Hackathon Selector */}
+            <div>
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Select Hackathon *</label>
+              {loadingEvents ? (
+                <div className="input-field flex items-center justify-center">
+                  <Loader2 size={16} className="animate-spin text-[#94a3b8]" />
+                </div>
+              ) : events.length === 0 ? (
+                <div className="input-field text-[#94a3b8] text-sm">No active hackathons available</div>
+              ) : (
+                <div className="relative">
+                  <select
+                    value={selectedEvent}
+                    onChange={(e) => setSelectedEvent(e.target.value)}
+                    required
+                    className="input-field w-full appearance-none cursor-pointer pr-10"
+                  >
+                    <option value="">Choose a hackathon...</option>
+                    {events.map(event => (
+                      <option key={event._id || event.id} value={event._id || event.id}>
+                        {event.name || event.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] pointer-events-none" />
+                </div>
+              )}
+            </div>
             <div>
               <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">Project Name *</label>
               <input name="project" value={form.project} onChange={handleChange} required placeholder="My Awesome Project" className="input-field" />
