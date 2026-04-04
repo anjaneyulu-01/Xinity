@@ -69,7 +69,7 @@ export default function Register() {
         className="w-full max-w-md relative z-10"
       >
         <div className="flex items-center justify-center gap-2 mb-8">
-          <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-contain" />
+          <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-cover rounded-2xl" />
           <span className={`font-heading font-bold text-2xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
         </div>
 

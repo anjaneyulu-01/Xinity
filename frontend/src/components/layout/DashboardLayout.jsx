@@ -64,7 +64,7 @@ export default function DashboardLayout({ sidebar, children }) {
       >
         {/* Logo */}
         <div className={`flex items-center gap-3 px-4 h-16 border-b flex-shrink-0 ${dark ? 'border-[#1e3a5f]' : 'border-gray-200'}`}>
-          <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-contain flex-shrink-0" />
+          <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-cover rounded-xl flex-shrink-0" />
           <AnimatePresence>
             {expanded && (
               <motion.span
@@ -161,7 +161,7 @@ export default function DashboardLayout({ sidebar, children }) {
               className={`lg:hidden fixed top-0 left-0 h-full w-60 z-50 border-r flex flex-col transition-colors duration-300 ${dark ? 'bg-[#080818] border-[#1e3a5f]' : 'bg-white border-gray-200'}`}
             >
               <div className={`flex items-center gap-3 px-4 h-16 border-b ${dark ? 'border-[#1e3a5f]' : 'border-gray-200'}`}>
-                <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-contain" />
+                <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-cover rounded-xl" />
                 <span className={`font-heading font-bold text-lg ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
                 <button onClick={() => setMobileOpen(false)} className={dark ? 'ml-auto text-[#94a3b8]' : 'ml-auto text-gray-500'}><X size={18} /></button>
               </div>

@@ -42,7 +42,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4 w-fit group">
-              <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-contain" />
+              <img src={logo} alt="Xinity Logo" className="w-9 h-9 object-cover rounded-2xl" />
               <span className={`font-heading font-bold text-2xl transition-colors ${dark ? 'text-white group-hover:text-[#00e5ff]' : 'text-gray-900 group-hover:text-[#0066ff]'}`}>
                 X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span>
               </span>

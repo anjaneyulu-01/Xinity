@@ -75,7 +75,7 @@ export default function Login() {
         </div>
         <div className="relative z-10 max-w-md w-full">
           <div className="flex items-center gap-3 mb-12">
-            <img src={logo} alt="Xinity Logo" className="w-12 h-12 object-contain" />
+            <img src={logo} alt="Xinity Logo" className="w-12 h-12 object-cover rounded-2xl" />
             <span className={`font-heading font-bold text-3xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
           </div>
           <h2 className={`font-heading font-bold text-4xl mb-3 leading-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
@@ -135,7 +135,7 @@ export default function Login() {
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-contain" />
+            <img src={logo} alt="Xinity Logo" className="w-8 h-8 object-cover rounded-2xl" />
             <span className={`font-heading font-bold text-xl ${dark ? 'text-white' : 'text-gray-900'}`}>X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span></span>
           </div>
 

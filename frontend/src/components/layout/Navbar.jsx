@@ -46,7 +46,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <img src={logo} alt="Xinity Logo" className="w-10 h-10 object-contain" />
+          <img src={logo} alt="Xinity Logo" className="w-10 h-10 object-cover rounded-2xl" />
           <span className={`font-heading font-bold text-xl ${dark ? 'text-white' : 'text-gray-900'} group-hover:text-[#00e5ff] transition-colors`}>
             X<span className="text-[#00e5ff]">inity</span>
           </span>
