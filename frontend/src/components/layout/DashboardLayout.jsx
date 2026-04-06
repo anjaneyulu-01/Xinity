@@ -199,12 +199,38 @@ export default function DashboardLayout({ sidebar, children }) {
       </AnimatePresence>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen" style={{ marginLeft: expanded ? '240px' : '64px' }} id="dash-main">
+      <div 
+        className="flex-1 flex flex-col min-h-screen transition-all duration-300" 
+        id="dash-main"
+      >
+        {/* Responsive margin - injected style for dynamic expanded state */}
+        <style>{`
+          @media (min-width: 1024px) {
+            #dash-main { margin-left: ${expanded ? '240px' : '64px'}; }
+          }
+        `}</style>
+        
         {/* Topbar */}
-        <header className={`h-16 flex items-center gap-4 px-4 sm:px-6 border-b backdrop-blur-xl sticky top-0 z-30 transition-colors duration-300 ${dark ? 'border-[#1e3a5f] bg-[#080818]/80' : 'border-gray-200 bg-white/80'}`}>
-          <button onClick={() => setMobileOpen(true)} className={`lg:hidden transition-colors ${dark ? 'text-[#94a3b8] hover:text-[#00e5ff]' : 'text-gray-500 hover:text-[#0066ff]'}`}>
+        <header className={`h-16 flex items-center gap-3 px-3 sm:px-6 border-b backdrop-blur-xl sticky top-0 z-30 transition-colors duration-300 ${dark ? 'border-[#1e3a5f] bg-[#080818]/80' : 'border-gray-200 bg-white/80'}`}>
+          {/* Mobile menu button - enhanced visibility */}
+          <button 
+            onClick={() => setMobileOpen(true)} 
+            className={`lg:hidden w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
+              dark 
+                ? 'border-[#1e3a5f] bg-[#0d1b2e] text-[#00e5ff] hover:border-[#00e5ff]/50' 
+                : 'border-gray-200 bg-gray-50 text-[#0066ff] hover:border-[#0066ff]/50'
+            }`}
+          >
             <Menu size={20} />
           </button>
+          
+          {/* Mobile logo - shown only on small screens */}
+          <Link to="/" className="lg:hidden flex items-center gap-2">
+            <img src={logo} alt="Xinity" className="w-8 h-8 object-cover rounded-xl" />
+            <span className={`font-heading font-bold text-lg ${dark ? 'text-white' : 'text-gray-900'}`}>
+              X<span className={dark ? 'text-[#00e5ff]' : 'text-[#0066ff]'}>inity</span>
+            </span>
+          </Link>
           
           {/* Search with keyboard shortcut */}
           <div className="relative flex-1 max-w-md hidden sm:block">
@@ -263,29 +289,36 @@ export default function DashboardLayout({ sidebar, children }) {
             <div className="relative">
               <button
                 onClick={() => setDropOpen(!dropOpen)}
-                className={`flex items-center gap-2 py-1.5 px-3 rounded-xl border transition-all ${dark ? 'border-[#1e3a5f] hover:border-[#00e5ff]/30' : 'border-gray-200 hover:border-[#0066ff]/30'}`}
+                className={`flex items-center gap-2 py-1.5 px-2 sm:px-3 rounded-xl border transition-all ${dark ? 'border-[#1e3a5f] hover:border-[#00e5ff]/30' : 'border-gray-200 hover:border-[#0066ff]/30'}`}
               >
                 <Avatar name={user?.name} size={7} />
                 <span className={`text-sm font-medium hidden sm:block ${dark ? 'text-white' : 'text-gray-900'}`}>{user?.name?.split(' ')[0]}</span>
-                <ChevronDown size={14} className={dark ? 'text-[#94a3b8]' : 'text-gray-400'} />
+                <ChevronDown size={14} className={`hidden sm:block ${dark ? 'text-[#94a3b8]' : 'text-gray-400'}`} />
               </button>
               <AnimatePresence>
                 {dropOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    className={`absolute right-0 top-full mt-2 w-52 glass-card border p-2 z-50 ${dark ? 'border-[#1e3a5f]' : 'border-gray-200 shadow-lg'}`}
-                  >
-                    <div className={`px-3 py-2 mb-1 border-b ${dark ? 'border-[#1e3a5f]' : 'border-gray-200'}`}>
-                      <p className={`text-sm font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>{user?.name}</p>
-                      <p className={`text-xs ${dark ? 'text-[#94a3b8]' : 'text-gray-500'}`}>{user?.email}</p>
-                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-code capitalize" style={{ background: '#00e5ff15', color: '#00e5ff' }}>{user?.role}</span>
-                    </div>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#ff4081] hover:bg-[#ff4081]/10 transition-all">
-                      <LogOut size={14} /> Sign out
-                    </button>
-                  </motion.div>
+                  <>
+                    {/* Backdrop for closing dropdown */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setDropOpen(false)} 
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      className={`absolute right-0 top-full mt-2 w-52 glass-card border p-2 z-50 ${dark ? 'border-[#1e3a5f]' : 'border-gray-200 shadow-lg'}`}
+                    >
+                      <div className={`px-3 py-2 mb-1 border-b ${dark ? 'border-[#1e3a5f]' : 'border-gray-200'}`}>
+                        <p className={`text-sm font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>{user?.name}</p>
+                        <p className={`text-xs ${dark ? 'text-[#94a3b8]' : 'text-gray-500'}`}>{user?.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-code capitalize" style={{ background: '#00e5ff15', color: '#00e5ff' }}>{user?.role}</span>
+                      </div>
+                      <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#ff4081] hover:bg-[#ff4081]/10 transition-all">
+                        <LogOut size={14} /> Sign out
+                      </button>
+                    </motion.div>
+                  </>
                 )}
               </AnimatePresence>
             </div>
